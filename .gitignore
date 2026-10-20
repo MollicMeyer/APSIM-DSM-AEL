@@ -2,8 +2,7 @@
 assets/
 data/
 outputs/
-tests/local/
-provenance/local_only/
+results/
 *.db
 *.db-shm
 *.db-wal
