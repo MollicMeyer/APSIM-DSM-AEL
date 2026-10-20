@@ -1,0 +1,16 @@
+# Local packaging of the spatial grid and archived PRISM retrieval evidence.
+here<-dirname(normalizePath(sub('^--file=','',grep('^--file=',commandArgs(FALSE),value=TRUE)),winslash='/'));source(file.path(here,'common.R'))
+a<-args_named();spatial<-normal(need(a,'spatial-source'));climate<-normal(need(a,'climate-source'));index<-normal(need(a,'cell-index'));out<-normal(need(a,'out'),FALSE)
+stopifnot(!dir.exists(out));st<-fromJSON(file.path(climate,'status.json'));stopifnot(st$status=='CLIMATE_CONTEXT_COMPLETE')
+raw<-read.csv(file.path(climate,'raw_hashes.csv'));stopifnot(all(unname(tools::md5sum(file.path(climate,'raw',raw$file)))==raw$md5))
+z<-read.csv(index,colClasses=c(mukey='character'));stopifnot(nrow(z)==1943,!anyDuplicated(z$profile_id),length(unique(z$mukey))==6)
+dir.create(out,recursive=TRUE);records<-list()
+copy_verified<-function(src,rel){dst<-file.path(out,rel);dir.create(dirname(dst),recursive=TRUE,showWarnings=FALSE);stopifnot(file.copy(src,dst,overwrite=FALSE),md5(src)==md5(dst));records[[length(records)+1]]<<-data.frame(relative_path=rel,md5=md5(dst),operation='Exact copy',upstream_md5=md5(src))}
+for(f in c('dsm_xy.csv','ssurgo_polygons.geojson','rasters/Maize_yield_2018_kgm2.tif','rasters/Kitchen_DHP_12m.tif'))copy_verified(file.path(spatial,f),paste0('spatial/',f))
+dir.create(file.path(out,'spatial'),showWarnings=FALSE)
+grid<-z[c('x','y','DHP','mukey','area_ha')];dest<-file.path(out,'spatial/paired_grid.csv');write.csv(grid,dest,row.names=FALSE)
+records[[length(records)+1]]<-data.frame(relative_path='spatial/paired_grid.csv',md5=md5(dest),operation='Select coordinates, DHP, true MUKEY and area from verified cell index',upstream_md5=md5(index))
+for(f in c('status.json','raw_hashes.csv','retrieval_provenance.json','provenance_sources.csv','site_coordinates.csv','CLIMATE_CONTEXT_README.txt',paste0('raw/',raw$file)))copy_verified(file.path(climate,f),paste0('climate/',f))
+write.csv(do.call(rbind,records),file.path(out,'context_manifest.csv'),row.names=FALSE)
+writej(list(status='CONTEXT_BUNDLED_NOT_PUBLICATION_APPROVED',manifest_md5=md5(file.path(out,'context_manifest.csv')),grid_cells=1943,mapunits=6,scope='Archived spatial and climate evidence; data rights review pending.',native_grid='Historical simulated-yield raster retained solely for original grid geometry; build_cell_index.R replaces every raster value before analysis.',paired_grid='Coordinates, DHP, true MUKEY and area only; no historical yield columns.',climate='Raw retrievals and source provenance copied without modification; geometry audit remains the archived audit.'),file.path(out,'status.json'))
+cat('Context bundle complete\n')

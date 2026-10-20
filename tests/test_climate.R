@@ -1,0 +1,7 @@
+here<-dirname(normalizePath(sub('^--file=','',grep('^--file=',commandArgs(FALSE),value=TRUE)),winslash='/'));source(file.path(here,'../R/common.R'))
+a<-args_named();old<-normal(need(a,'archive'));new<-normal(need(a,'reproduced'));out<-normal(need(a,'out'),FALSE)
+stopifnot(!file.exists(out),fromJSON(file.path(new,'status.json'))$status=='CLIMATE_CONTEXT_REPRODUCED')
+files<-c('prism_monthly_2017_2021.csv','prism_normals_1991_2020.csv','prism_climate_context.csv','prism_annual_aggregation_check.csv','apsim_actual_weather_context.csv','prism_vs_simulation_weather.csv')
+checks<-lapply(files,function(f){x<-read.csv(file.path(old,f),stringsAsFactors=FALSE);y<-read.csv(file.path(new,f),stringsAsFactors=FALSE);stopifnot(identical(names(x),names(y)),identical(dim(x),dim(y)));errs<-vapply(names(x),function(n){if(is.numeric(x[[n]])){stopifnot(identical(is.na(x[[n]]),is.na(y[[n]])));max(c(0,abs(x[[n]]-y[[n]])),na.rm=TRUE)}else{stopifnot(identical(x[[n]],y[[n]]));0}},numeric(1));stopifnot(max(errs)<1e-10);list(file=f,rows=nrow(x),maximum_numeric_difference=max(errs),archive_md5=md5(file.path(old,f)),reproduced_md5=md5(file.path(new,f)))})
+writej(list(status='PASS',scope='Six reproduced climate tables compared with archived approved arithmetic; no new PRISM retrieval or geometry audit.',checks=checks),out)
+cat('Climate arithmetic reproduction PASS\n')

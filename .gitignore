@@ -1,0 +1,20 @@
+# Licensed engines, local scientific assets, databases and machine paths are not public code.
+assets/
+data/
+outputs/
+tests/local/
+provenance/local_only/
+*.db
+*.db-shm
+*.db-wal
+*.apsimx
+*.met
+*.zip
+*.rds
+*.RData
+.Rhistory
+.RData
+.Renviron
+.Rprofile
+*.log
+*.lnk
