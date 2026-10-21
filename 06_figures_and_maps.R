@@ -9,6 +9,7 @@ library(aqp)
 library(lattice)
 library(dplyr)
 source('settings.R')
+source('R/map_relief.R')
 figure_directory <- file.path(analysis_directory,'figures')
 dir.create(figure_directory,recursive=TRUE,showWarnings=FALSE)
 paired <- read.csv(file.path(analysis_directory,'paired_cells.csv'))
@@ -16,7 +17,7 @@ paired$DHP <- factor(paired$DHP,levels=c('SU','SH','BS','FS','TS'))
 source_colors <- c(DSM='darkgoldenrod4',SSURGO='darkslategray')
 year_colors <- c('2017'='#0072B2','2019'='#009E73','2021'='#D55E00')
 save_figure <- function(plot,name,width,height) {
-  ggsave(file.path(figure_directory,paste0(name,'.pdf')),plot,width=width,height=height)
+  ggsave(file.path(figure_directory,paste0(name,'.pdf')),plot,width=width,height=height,device=cairo_pdf)
   ggsave(file.path(figure_directory,paste0(name,'.png')),plot,width=width,height=height,dpi=450)
 }
 dhp_colors <- c(SU='#E41A1C',SH='#FF7F00',BS='#F5DEB3',FS='#ADD8E6',TS='#984EA3',SSURGO='#4DAF4A')
@@ -96,13 +97,14 @@ polygons$mukey <- as.character(polygons$mukey)
 # Approved cartographic positions, not soil or yield observations.
 label_positions <- read.csv('data/SSURGO/label_positions.csv')
 box <- sf::st_bbox(polygons)
-yield_palette <- c('#C75D36','#E7A315','#BCE500','#31CE26','#159370','#0C377C')
+yield_palette <- yield_map_colors
+relief <- map_relief(polygons,figure_directory)
 legend <- function(p) {
   grobs <- ggplotGrob(p)$grobs
   grobs[[which(vapply(grobs,function(x)x$name,character(1))=='guide-box')]]
 }
 map_base <- function() {
-  ggplot()+coord_sf(xlim=c(box['xmin']-5,box['xmax']+30),
+  ggplot()+relief_layer(relief)+coord_sf(xlim=c(box['xmin']-5,box['xmax']+30),
     ylim=c(box['ymin']-45,box['ymax']+10),expand=FALSE)+theme_void(base_size=16)+
     theme(plot.title=element_text(size=18,face='bold',hjust=.5),legend.position='bottom',
       legend.title=element_text(size=16,hjust=.5),legend.text=element_text(size=15),
@@ -143,25 +145,17 @@ for(year in c(2017,2019,2021)) {
     breaks=c(limits[1],mean(limits),limits[2]),labels=function(x)sprintf('%.2f',x),
     name=expression(Yield~(Mg~ha^{-1})),guide=guide_colourbar(title.position='top',title.hjust=.5,
       barwidth=unit(9,'inches'),barheight=unit(.27,'inches')))
-  pss <- map_annotation(map_base()+geom_sf(data=survey,aes(fill=dominant),colour='black',size=.25)+
+  pss <- map_annotation(map_base()+geom_sf(data=survey,aes(fill=dominant),colour=NA,alpha=map_color_opacity)+
+    geom_sf(data=survey,fill=NA,colour='black',size=.25)+
     geom_sf_text(data=text,aes(label=sprintf('%.2f',dominant)),colour='black',size=4.8,fontface='bold',check_overlap=TRUE)+
     geom_sf_text(data=text,aes(label=sprintf('%.2f',dominant)),colour='white',size=4.2,fontface='bold',check_overlap=TRUE)+
     yield_scale+labs(title=paste0(letters[match(year,c(2017,2019,2021))*3-2],') ',year,' SSURGO')),scale_bar=FALSE)
-  pdsm <- map_annotation(map_base()+geom_raster(data=a,aes(x,y,fill=yield))+
+  pdsm <- map_annotation(map_base()+geom_raster(data=a,aes(x,y,fill=yield),alpha=map_color_opacity)+
     geom_sf(data=polygons,fill=NA,colour='black',size=.25)+yield_scale+
     labs(title=paste0(letters[match(year,c(2017,2019,2021))*3-1],') ',year,' DSM')))
-  # Place white at zero, including years dominated by one sign of the difference.
-  anchors <- c(min(dlimits[1],0),0,max(dlimits[2],0))
-  difference_scale <- if(dlimits[1]>=0) {
-    scale_fill_gradient(low='#c6dbef',high='#08519c',limits=dlimits,oob=scales::squish,
-      breaks=c(dlimits[1],mean(dlimits),dlimits[2]),labels=function(x)sprintf('%.2f',x))
-  } else if(dlimits[2]<=0) {
-    scale_fill_gradient(low='#a50f15',high='#fee5d9',limits=dlimits,oob=scales::squish,
-      breaks=c(dlimits[1],mean(dlimits),dlimits[2]),labels=function(x)sprintf('%.2f',x))
-  } else scale_fill_gradientn(colours=c('#a50f15','white','#08519c'),
-    values=scales::rescale(anchors,from=dlimits),limits=dlimits,oob=scales::squish,
-    breaks=c(dlimits[1],mean(dlimits),dlimits[2]),labels=function(x)sprintf('%.2f',x))
-  pdiff <- map_annotation(map_base()+geom_raster(data=b,aes(x,y,fill=difference))+
+  # Neutral at zero, warm for SSURGO higher, blue for DSM higher.
+  difference_scale <- signed_difference_fill(dlimits,c(dlimits[1],mean(dlimits),dlimits[2]))
+  pdiff <- map_annotation(map_base()+geom_raster(data=b,aes(x,y,fill=difference),alpha=map_color_opacity)+
     geom_sf(data=polygons,fill=NA,colour='black',size=.25)+difference_scale+
     labs(title=paste0(letters[match(year,c(2017,2019,2021))*3],') ',year,' DSM minus SSURGO'),
       fill=expression(DSM-SSURGO~(Mg~ha^{-1})))+
@@ -169,9 +163,14 @@ for(year in c(2017,2019,2021)) {
       barwidth=unit(4.3,'inches'),barheight=unit(.27,'inches'))))
   map_rows[[as.character(year)]] <- gridExtra::arrangeGrob(pss+theme(legend.position='none'),
     pdsm+theme(legend.position='none'),pdiff+theme(legend.position='none'),legend(pdsm),legend(pdiff),
-    layout_matrix=rbind(c(1,2,3),c(4,4,5)),heights=c(1,.18))
+    layout_matrix=rbind(c(1,2,3),c(4,4,5)),heights=c(1,.25))
 }
 save_figure(gridExtra::arrangeGrob(grobs=map_rows,ncol=1),'Figure_2_multiyear_maps',16,15.2)
+
+# Preserve the author's ArcGIS site figure, including its cleaned DHP boundaries.
+# This is supplied artwork, not a map reconstructed from the analysis grid.
+file.copy('data/landscape/site_context_original.png',
+          file.path(figure_directory,'Figure_S1_site_context.png'),overwrite=TRUE)
 
 # Keep the original aqp depth summary and the author's source colors.
 dsm <- readRDS('results/DSM/profiles.rds');ssurgo <- readRDS('results/SSURGO/profiles.rds')

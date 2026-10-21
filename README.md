@@ -1,6 +1,6 @@
-# DSM and SSURGO soil inputs in APSIM
+# Locally enhanced DSM and SSURGO soil inputs in APSIM
 
-R scripts for the soil-input comparison accompanying the Agricultural & Environmental Letters manuscript. The workflow starts with soil maps and archived survey tables, builds soil profiles, runs a continuous maize-soybean rotation, and returns simulated yields to the field map.
+R scripts for the soil-input comparison accompanying the Agricultural & Environmental Letters manuscript. The locally enhanced digital soil maps combine 2019 field soil samples with terrain and aerial imagery in Cubist models. These maps represent the local sampling campaign, not annually updated soil observations. The workflow starts with those maps and archived survey tables, builds soil profiles, runs a continuous maize-soybean rotation, and returns simulated yields to the field map.
 
 ## Run the analysis
 
@@ -15,6 +15,7 @@ Run the numbered scripts in order:
 5. `05_analyze_yields_and_spatial_patterns.R`: extract 2017, 2019 and 2021 maize yields, reconstruct native-grid pairs, summarize hillslope patterns, calculate raw-soil associations, and fit semivariograms with `gstat`.
 6. `06_figures_and_maps.R`: draw the yield, soil-profile, association and spatial figures with `ggplot2`, `sf`, `terra` and `aqp`.
 7. `07_climate_context.R`: summarize the archived PRISM departures from 1991-2020 normals and plot climate context.
+8. `08_graphical_abstract.R`: draw the graphical abstract from the final paired yields, using the same map styling as step 06. This step does not rerun simulations.
 
 For example, in R: `source("01_DSM_maps_to_profiles.R")`. Run each subsequent script after its predecessor finishes. To test just two already prepared profiles, use `Rscript 04_run_simulations.R Maize_1 Maize_2018_Canisteo_2922007_d` after step 03. Step 05 requires the complete field experiment.
 
@@ -27,6 +28,8 @@ The experiment uses 2,030 DSM profiles and six dominant SSURGO profiles over 201
 Field summaries use 1,943 paired 12-m cells, approximately 28 ha. The six survey-component outputs are assigned through the original categorical map-unit raster, not treated as thousands of independent soil observations. Map boundaries come from the source polygons. Cubic resampling is for figure display only; numerical summaries use native cells. Soil-yield regressions are descriptive associations, not independent estimates of causal sensitivity or validation against measured yields.
 
 ## Source data
+
+The yield maps use a 3 m elevation crop for multidirectional hillshade with 10 times vertical exaggeration and 77% color opacity. `R/map_relief.R` shares the relief and color settings between figures. Warm difference colors mean SSURGO is higher, neutral marks zero, and blue means DSM is higher. Hillshade changes brightness only; it does not change any yield value. The original site context figure, including its cleaned hillslope boundaries, is supplied as artwork and copied unchanged by step 06. All analyses use the native hillslope classes.
 
 The soil maps, survey tables, weather and rotation template are in `data/`. See [data/SOURCES.md](data/SOURCES.md) for their origins and terms of use. Software references and tested versions are listed in [REFERENCES.md](REFERENCES.md) and [package_versions.csv](package_versions.csv).
 
