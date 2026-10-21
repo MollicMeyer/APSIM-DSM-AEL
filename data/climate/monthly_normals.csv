@@ -1,0 +1,24 @@
+PRISM Time Series Data
+Location:  Lat: 41.9994   Lon: -93.7041   Elev: unknown
+"Climate variables: ppt,tmean"
+Spatial resolution: 4km
+Monthly 1991-2020 Normals
+Dataset: Norm91m
+PRISM day definition: 24 hours ending at 1200 UTC on the day shown
+Grid Cell Interpolation: Off
+Time series generated: 2026-Oct-09
+Details: http://www.prism.oregonstate.edu/documents/PRISM_datasets.pdf
+Date,ppt (mm),tmean (degrees C)
+January,22.40,-6.9
+February,28.61,-4.5
+March,51.45,2.4
+April,94.95,9.5
+May,129.46,15.8
+June,130.08,21.4
+July,110.98,23.2
+August,115.15,21.9
+September,88.71,18.0
+October,66.99,10.9
+November,46.45,3.0
+December,34.58,-3.7
+Annual,919.81,9.3

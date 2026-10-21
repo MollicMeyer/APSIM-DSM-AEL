@@ -1,0 +1,2 @@
+"longitude","latitude","method","source","md5"
+-93.7040880951535,41.9993716515539,"Area centroid of union of source SSURGO polygons in EPSG:32615, transformed to EPSG:4326","reproducibility/data/ssurgo_polygons.geojson","1f55d00a9623be50a569eef4138a7b34"
