@@ -29,3 +29,7 @@ Field summaries use 1,943 paired 12-m cells, approximately 28 ha. The six survey
 ## Source data
 
 The soil maps, survey tables, weather and rotation template are in `data/`. See [data/SOURCES.md](data/SOURCES.md) for their origins and terms of use. Software references and tested versions are listed in [REFERENCES.md](REFERENCES.md) and [package_versions.csv](package_versions.csv).
+
+## License
+
+Original contributions are available under [CC BY 4.0](LICENSE.md). Third-party data and model material retain their own terms, listed in [data/SOURCES.md](data/SOURCES.md). APSIM must be obtained and licensed separately.
