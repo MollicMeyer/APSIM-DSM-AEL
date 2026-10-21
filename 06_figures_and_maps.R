@@ -22,6 +22,10 @@ save_figure <- function(plot,name,width,height) {
 dhp_colors <- c(SU='#E41A1C',SH='#FF7F00',BS='#F5DEB3',FS='#ADD8E6',TS='#984EA3',SSURGO='#4DAF4A')
 position_summary <- read.csv(file.path(analysis_directory,'hillslope_summary.csv'))
 field_summary <- read.csv(file.path(analysis_directory,'field_summary.csv'))
+# Percentages of the paired comparison area used in the Figure S2 caption.
+position_areas <- position_summary %>% group_by(year) %>%
+  transmute(DHP,percent_area=100*area_ha/sum(area_ha)) %>% ungroup()
+write.csv(position_areas,file.path(figure_directory,'hillslope_area_percent.csv'),row.names=FALSE)
 plots <- list()
 theme_original <- theme_minimal(base_size=12)+theme(panel.grid.minor=element_blank(),
   legend.position='none',plot.title=element_text(size=12),axis.text=element_text(size=11))
@@ -50,9 +54,9 @@ save_drawing <- function(name,width,height,draw) {
 }
 draw_summary <- function() {
   grid.newpage();pushViewport(viewport(layout=grid.layout(4,2,
-    heights=unit(c(.8,2.55,2.55,2.55),'null'))))
-  pushViewport(viewport(layout.pos.row=1,layout.pos.col=1:2,xscale=c(0,5),yscale=c(-.35,2.1)))
-  # Schematic hillslope only, matching the approved V16 layout.
+    heights=unit(c(1.05,2.55,2.55,2.55),'null'))))
+  pushViewport(viewport(layout.pos.row=1,layout.pos.col=1:2,xscale=c(0,5),yscale=c(-.4,1.75)))
+  # Schematic hillslope with vertical exaggeration to distinguish the positions.
   x <- seq(0,5,length.out=501)
   slope <- ifelse(x<1,0,ifelse(x<2,-.7*(1-cos(pi*(x-1)))/2,
     ifelse(x<3,-.7,ifelse(x<4,-.7*(1+cos(pi*(x-3)))/2,0))))
@@ -60,7 +64,7 @@ draw_summary <- function() {
   grid.lines(unit(.15+.94*x,'native'),unit(y,'native'),gp=gpar(col='black',lwd=2.5))
   for(k in 1:5)grid.text(c('Summit (SU)','Shoulder (SH)','Backslope (BS)',
     'Footslope (FS)','Toeslope (TS)')[k],x=unit(.15+.94*(k-.5),'native'),
-    y=unit(y[which.min(abs(x-(k-.5)))]+.5,'native'),gp=gpar(fontsize=11))
+    y=unit(y[which.min(abs(x-(k-.5)))]+.35,'native'),gp=gpar(fontsize=11))
   popViewport()
   for(i in seq_along(plots)) {
     pushViewport(viewport(layout.pos.row=(i-1)%/%2+2,layout.pos.col=(i-1)%%2+1))
@@ -79,7 +83,7 @@ differences$DHP <- factor(differences$DHP,levels=c('SU','SH','BS','FS','TS','Fie
 differences$year <- factor(differences$year)
 p <- ggplot(differences,aes(DHP,mean_difference,fill=year))+geom_hline(yintercept=0,colour='grey35')+
   geom_col(width=.65)+geom_errorbar(aes(ymin=mean_difference-SD_difference,
-    ymax=mean_difference+SD_difference),width=.15)+facet_wrap(~year,ncol=1)+
+    ymax=mean_difference+SD_difference),width=.15)+facet_wrap(~year,ncol=1,scales='free_y')+
   scale_fill_manual(values=year_colors)+theme_bw(base_size=19)+
   theme(legend.position='none',panel.grid.minor=element_blank())+
   labs(x=NULL,y=expression(DSM-SSURGO~yield~difference~(Mg~ha^{-1})))
