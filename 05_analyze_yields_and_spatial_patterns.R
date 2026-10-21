@@ -103,6 +103,25 @@ r2 <- associations %>% group_by(year,product,interval,property) %>%
   }) %>% ungroup()
 write.csv(r2,file.path(analysis_directory,'soil_yield_associations.csv'),row.names=FALSE)
 
+# Relate paired topsoil OC contrasts to the paired yield contrasts in the paper.
+topsoil <- predictors %>% filter(interval=='0-30 cm')
+survey_topsoil <- topsoil %>% filter(product=='SSURGO') %>%
+  mutate(mukey=sub('.*_([0-9]+)_d$','\\1',profile_id)) %>%
+  select(mukey,OC_SSURGO=OC)
+oc_pairs <- paired %>%
+  left_join(topsoil %>% filter(product=='DSM') %>% select(profile_id,OC_DSM=OC),by='profile_id') %>%
+  left_join(survey_topsoil,by='mukey') %>% mutate(OC_difference=OC_DSM-OC_SSURGO)
+stopifnot(!anyNA(oc_pairs$OC_difference))
+oc_associations <- oc_pairs %>% group_by(year) %>% group_modify(~{
+  fit <- lm(delta~OC_difference,data=.x)
+  data.frame(cells=nrow(.x),mean_OC_DSM=mean(.x$OC_DSM),mean_OC_SSURGO=mean(.x$OC_SSURGO),
+    R2=summary(fit)$r.squared,slope=unname(coef(fit)[2]))
+}) %>% ungroup()
+write.csv(oc_associations,file.path(analysis_directory,'paired_OC_yield_associations.csv'),row.names=FALSE)
+soil_covariation <- topsoil %>% group_by(product) %>% summarise(profiles=n(),
+  OC_clay_r=cor(OC,clay),.groups='drop')
+write.csv(soil_covariation,file.path(analysis_directory,'topsoil_OC_clay_correlation.csv'),row.names=FALSE)
+
 # Empirical semivariograms and standard package-based model fitting.
 empirical <- list();candidates <- list();curves <- list()
 for(year in years) for(map in c('dsm','dominant','delta')) {
